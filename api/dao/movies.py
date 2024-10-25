@@ -22,6 +22,35 @@ class MovieDAO:
     # tag::all[]
     def all(self, sort, order, limit=6, skip=0, user_id=None):
         # TODO: Get list from movies from Neo4j
+
+        def get_movies(tx, sort, order, limit, skip, user_id):
+
+            cypher = """
+                MATCH (m:Movie)
+                WHERE m.`{0}` IS NOT NULL
+                RETURN m {{ .* }} AS movie
+                ORDER BY m.`{0}` {1}
+                SKIP $skip 
+                LIMIT $limit
+            """.format(sort, order)
+
+            result = tx.run(cypher, limit=limit, skip=skip, user_id=user_id)
+
+            return [
+                record.value("movie")
+                for record in result
+            ]
+        
+        with self.driver.session() as session:
+            return session.execute_read(
+                get_movies,
+                sort=sort,
+                order=order,
+                limit=limit,
+                skip=skip,
+                user_id=user_id
+            )
+
         return popular
     # end::all[]
 
